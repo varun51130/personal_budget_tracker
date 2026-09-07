@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>{{ action }} Budget</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Save</button>
+    <a href="{% url 'transactions:list' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

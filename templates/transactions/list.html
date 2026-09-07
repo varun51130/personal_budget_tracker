@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card p-4">
+  <h2>Transactions</h2>
+  <p>
+    <a href="{% url 'transactions:add' %}">Add Transaction</a> |
+    <a href="{% url 'transactions:export_csv' %}">Export CSV</a>
+  </p>
+
+  <!-- Monthly Summary Chart -->
+  <h3>Monthly Summary</h3>
+  <canvas id="spendChart" style="max-width:600px"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const totals = {{ totals|safe }};
+    const labels = Object.keys(totals);
+    const data = labels.map(l => totals[l]);
+    const ctx = document.getElementById('spendChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: { labels: labels, datasets: [{ data: data }] },
+      options: { responsive: true }
+    });
+  </script>
+
+  <!-- Budget Overview -->
+  <h3>Budget Overview</h3>
+
+  <!-- (Optional) simple form to add / update a budget for this month
+       If you already wired add_budget view and BudgetForm -->
+  <form method="post" action="{% url 'transactions:add_budget' %}" style="margin-bottom: 1rem;">
+    {% csrf_token %}
+    {{ budget_form.as_p }}
+    <button type="submit">Save Budget</button>
+  </form>
+
+  <table class="table table-striped" style="width:100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Budget</th>
+        <th>Spent</th>
+        <th>Remaining</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in budget_data %}
+      <tr>
+        <td>{{ b.category }}</td>
+
+        <!-- Budget (editable input) -->
+        <td>
+          ₹ <input type="number"
+                   class="limit-input"
+                   value="{{ b.limit }}"
+                   data-id="{{ b.id }}"
+                   step="0.01" />
+        </td>
+
+        <!-- Spent comes from your transactions (read-only) -->
+        <td>₹ <span class="spent" data-id="{{ b.id }}">{{ b.spent }}</span></td>
+
+        <!-- Remaining is auto-calculated in JS when budget changes -->
+        <td>₹ <span class="remaining" data-id="{{ b.id }}">{{ b.remaining }}</span></td>
+
+        <td>
+          <a href="{% url 'transactions:edit_budget' b.id %}">Edit</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5">No budgets set for this month.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- JS: when budget (limit) changes, update Remaining = Budget - Spent -->
+  <script>
+    document.querySelectorAll(".limit-input").forEach(input => {
+      input.addEventListener("input", function () {
+        const id = this.dataset.id;
+        const limit = parseFloat(this.value) || 0;
+
+        const spentElement = document.querySelector(`.spent[data-id='${id}']`);
+        const remainingElement = document.querySelector(`.remaining[data-id='${id}']`);
+
+        const spent = parseFloat(spentElement.innerText) || 0;
+        const remaining = limit - spent;
+
+        remainingElement.innerText = remaining.toFixed(2);
+      });
+    });
+  </script>
+
+  <!-- Insights -->
+  <h3>Insights</h3>
+  <ul>
+    {% for insight in insights %}
+      <li>{{ insight }}</li>
+    {% empty %}
+      <li>No insights yet — track more spending to get tips.</li>
+    {% endfor %}
+  </ul>
+
+  <!-- All Transactions -->
+  <h3>All Transactions</h3>
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Amount</th>
+        <th>Category</th>
+        <th>Notes</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+      <tr>
+        <td>{{ t.date }}</td>
+        <td>₹{{ t.amount|floatformat:2 }}</td>
+        <td>{% if t.category %}{{ t.category.name }}{% endif %}</td>
+        <td>{{ t.notes }}</td>
+        <td>
+          <a href="{% url 'transactions:edit' t.pk %}">Edit</a> |
+          <form method="post" action="{% url 'transactions:delete' t.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+# Environment variables (contains real secrets - never commit)
+.env
+.env.*.local
+
+# Virtual environments
+venv/
+venv_broken_old_backup/
+env/
+ENV/
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+build/
+dist/
+
+# Django
+staticfiles/
+media/
+db.sqlite3
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
